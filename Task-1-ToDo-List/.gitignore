@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+tasks.json
+main_backup.py
+.env
