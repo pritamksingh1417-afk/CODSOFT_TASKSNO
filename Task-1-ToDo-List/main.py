@@ -4,56 +4,49 @@ import json
 import os
 
 
-# -------------------- DATA --------------------
-
 tasks = []
-FILE_NAME = "tasks.json"
+file_name = "tasks.json"
 current_filter = "All"
 
 
-# -------------------- SAVE / LOAD --------------------
-
 def save_tasks():
-    with open(FILE_NAME, "w") as file:
+    with open(file_name, "w") as file:
         json.dump(tasks, file, indent=4)
 
 
 def load_tasks():
     global tasks
 
-    if os.path.exists(FILE_NAME):
-        with open(FILE_NAME, "r") as file:
+    if os.path.exists(file_name):
+        with open(file_name, "r") as file:
             tasks = json.load(file)
 
 
-# -------------------- TASK FUNCTIONS --------------------
-
 def add_task():
-    task_name = task_entry.get().strip()
+    task = task_entry.get().strip()
 
-    if task_name == "":
-        messagebox.showwarning("Warning", "Please enter a task.")
+    if task == "":
+        messagebox.showwarning("Warning", "Enter a task first.")
         return
 
     tasks.append({
-        "name": task_name,
+        "name": task,
         "completed": False
     })
 
     task_entry.delete(0, ctk.END)
 
     save_tasks()
-    refresh_tasks()
+    show_tasks()
 
 
-def get_visible_tasks():
-    visible_tasks = []
-
-    search_text = search_entry.get().lower()
+def get_tasks():
+    result = []
+    search = search_entry.get().lower()
 
     for task in tasks:
 
-        if search_text not in task["name"].lower():
+        if search not in task["name"].lower():
             continue
 
         if current_filter == "Pending" and task["completed"]:
@@ -62,52 +55,49 @@ def get_visible_tasks():
         if current_filter == "Completed" and not task["completed"]:
             continue
 
-        visible_tasks.append(task)
+        result.append(task)
 
-    return visible_tasks
+    return result
 
 
-def refresh_tasks():
-    for widget in task_scroll_frame.winfo_children():
+def show_tasks():
+
+    for widget in task_frame.winfo_children():
         widget.destroy()
 
-    visible_tasks = get_visible_tasks()
+    visible_tasks = get_tasks()
 
-    for index, task in enumerate(visible_tasks):
+    for task in visible_tasks:
 
-        task_frame = ctk.CTkFrame(
-            task_scroll_frame,
-            corner_radius=10
-        )
-
-        task_frame.pack(
+        box = ctk.CTkFrame(task_frame)
+        box.pack(
             fill="x",
-            padx=10,
+            padx=5,
             pady=5
         )
 
         if task["completed"]:
-            text = "✓  " + task["name"]
+            text = "✓ " + task["name"]
         else:
             text = task["name"]
 
-        task_label = ctk.CTkLabel(
-            task_frame,
+        label = ctk.CTkLabel(
+            box,
             text=text,
             font=("Arial", 15),
             anchor="w"
         )
 
-        task_label.pack(
+        label.pack(
             side="left",
-            padx=15,
-            pady=12,
+            padx=10,
+            pady=10,
             fill="x",
             expand=True
         )
 
         complete_button = ctk.CTkButton(
-            task_frame,
+            box,
             text="✓",
             width=40,
             command=lambda t=task: complete_task(t)
@@ -115,84 +105,86 @@ def refresh_tasks():
 
         complete_button.pack(
             side="right",
-            padx=5
+            padx=4
         )
 
         edit_button = ctk.CTkButton(
-            task_frame,
+            box,
             text="Edit",
-            width=55,
+            width=60,
             command=lambda t=task: edit_task(t)
         )
 
         edit_button.pack(
             side="right",
-            padx=5
+            padx=4
         )
 
         delete_button = ctk.CTkButton(
-            task_frame,
+            box,
             text="Delete",
-            width=65,
+            width=70,
             command=lambda t=task: delete_task(t)
         )
 
         delete_button.pack(
             side="right",
-            padx=5
+            padx=4
         )
 
-    update_statistics()
+    update_count()
 
 
 def complete_task(task):
+
     task["completed"] = True
 
     save_tasks()
-    refresh_tasks()
+    show_tasks()
 
 
 def delete_task(task):
-    confirm = messagebox.askyesno(
-        "Delete Task",
-        "Are you sure you want to delete this task?"
+
+    answer = messagebox.askyesno(
+        "Delete",
+        "Do you want to delete this task?"
     )
 
-    if confirm:
+    if answer:
         tasks.remove(task)
-
         save_tasks()
-        refresh_tasks()
+        show_tasks()
 
 
 def edit_task(task):
-    edit_window = ctk.CTkToplevel(root)
 
-    edit_window.title("Edit Task")
-    edit_window.geometry("400x200")
+    window = ctk.CTkToplevel(root)
 
-    edit_window.grab_set()
+    window.title("Edit Task")
+    window.geometry("400x200")
+
+    window.grab_set()
 
     label = ctk.CTkLabel(
-        edit_window,
+        window,
         text="Edit Task",
         font=("Arial", 20, "bold")
     )
 
     label.pack(pady=20)
 
-    edit_entry = ctk.CTkEntry(
-        edit_window,
+    entry = ctk.CTkEntry(
+        window,
         width=300
     )
 
-    edit_entry.pack(pady=10)
+    entry.pack(pady=10)
 
-    edit_entry.insert(0, task["name"])
+    entry.insert(0, task["name"])
 
-    def save_edit():
+    def save_change():
 
-        new_name = edit_entry.get().strip()
+        new_name = entry.get().strip()
 
         if new_name == "":
             messagebox.showwarning(
@@ -204,41 +196,35 @@ def edit_task(task):
         task["name"] = new_name
 
         save_tasks()
-        refresh_tasks()
+        show_tasks()
 
-        edit_window.destroy()
+        window.destroy()
 
-    save_button = ctk.CTkButton(
-        edit_window,
-        text="Save Changes",
-        command=save_edit
+    button = ctk.CTkButton(
+        window,
+        text="Save",
+        command=save_change
     )
 
-    save_button.pack(pady=15)
+    button.pack(pady=10)
 
 
-# -------------------- SEARCH --------------------
-
-def search_tasks(event=None):
-    refresh_tasks()
+def search_task(event=None):
+    show_tasks()
 
 
-# -------------------- FILTERS --------------------
+def change_filter(value):
 
-def set_filter(filter_name):
     global current_filter
 
-    current_filter = filter_name
+    current_filter = value
 
-    refresh_tasks()
+    show_tasks()
 
 
-# -------------------- STATISTICS --------------------
-
-def update_statistics():
+def update_count():
 
     total = len(tasks)
-
     completed = 0
 
     for task in tasks:
@@ -247,72 +233,41 @@ def update_statistics():
 
     pending = total - completed
 
-    statistics_label.configure(
-        text=f"Total: {total}     Pending: {pending}     Completed: {completed}"
+    count_label.configure(
+        text="Total: " + str(total) +
+        "    Pending: " + str(pending) +
+        "    Completed: " + str(completed)
     )
 
 
-# -------------------- APPEARANCE --------------------
-
 ctk.set_appearance_mode("System")
-
 ctk.set_default_color_theme("blue")
 
-def add_task_with_enter(event):
-    add_task()
-
-
-def focus_search(event):
-    search_entry.focus()
-
-
-def clear_search(event):
-    search_entry.delete(0, ctk.END)
-    refresh_tasks()
-# -------------------- MAIN WINDOW --------------------
 
 root = ctk.CTk()
 
-root.title("Smart To-Do List")
-
-root.geometry("900x700")
-
-root.minsize(750, 600)
+root.title("My To-Do List")
+root.geometry("800x650")
+root.minsize(650, 500)
 
 
-# -------------------- HEADER --------------------
-
-header_frame = ctk.CTkFrame(
+title = ctk.CTkLabel(
     root,
-    corner_radius=0
-)
-
-header_frame.pack(
-    fill="x"
-)
-
-
-title_label = ctk.CTkLabel(
-    header_frame,
-    text="Smart To-Do List",
+    text="My To-Do List",
     font=("Arial", 30, "bold")
 )
 
-title_label.pack(pady=(20, 5))
+title.pack(pady=(25, 5))
 
 
-subtitle_label = ctk.CTkLabel(
-    header_frame,
-    text="Organize your tasks. Stay productive.",
+subtitle = ctk.CTkLabel(
+    root,
+    text="Organize your tasks",
     font=("Arial", 14)
 )
 
-subtitle_label.pack(
-    pady=(0, 20)
-)
+subtitle.pack(pady=(0, 20))
 
-
-# -------------------- INPUT AREA --------------------
 
 input_frame = ctk.CTkFrame(
     root,
@@ -321,16 +276,14 @@ input_frame = ctk.CTkFrame(
 
 input_frame.pack(
     fill="x",
-    padx=40,
-    pady=20
+    padx=30
 )
 
 
 task_entry = ctk.CTkEntry(
     input_frame,
     placeholder_text="Enter a new task...",
-    height=45,
-    font=("Arial", 14)
+    height=40
 )
 
 task_entry.pack(
@@ -343,42 +296,32 @@ task_entry.pack(
 
 add_button = ctk.CTkButton(
     input_frame,
-    text="+ Add Task",
-    width=120,
-    height=45,
+    text="Add Task",
+    width=100,
+    height=40,
     command=add_task
 )
 
-add_button.pack(
-    side="right"
-)
+add_button.pack(side="right")
 
-
-# -------------------- SEARCH --------------------
 
 search_entry = ctk.CTkEntry(
     root,
-    placeholder_text="🔍 Search tasks...",
-    height=40,
-    font=("Arial", 13)
+    placeholder_text="Search tasks...",
+    height=38
 )
 
 search_entry.pack(
     fill="x",
-    padx=40,
-    pady=(0, 15)
+    padx=30,
+    pady=15
 )
 
 search_entry.bind(
     "<KeyRelease>",
-    search_tasks
+    search_task
 )
-root.bind("<Return>", add_task_with_enter)
-root.bind("<Control-f>", focus_search)
-root.bind("<Escape>", clear_search)
 
-
-# -------------------- FILTER BUTTONS --------------------
 
 filter_frame = ctk.CTkFrame(
     root,
@@ -391,8 +334,8 @@ filter_frame.pack(pady=5)
 all_button = ctk.CTkButton(
     filter_frame,
     text="All",
-    width=100,
-    command=lambda: set_filter("All")
+    width=90,
+    command=lambda: change_filter("All")
 )
 
 all_button.grid(
@@ -405,8 +348,8 @@ all_button.grid(
 pending_button = ctk.CTkButton(
     filter_frame,
     text="Pending",
-    width=100,
-    command=lambda: set_filter("Pending")
+    width=90,
+    command=lambda: change_filter("Pending")
 )
 
 pending_button.grid(
@@ -419,8 +362,8 @@ pending_button.grid(
 completed_button = ctk.CTkButton(
     filter_frame,
     text="Completed",
-    width=100,
-    command=lambda: set_filter("Completed")
+    width=90,
+    command=lambda: change_filter("Completed")
 )
 
 completed_button.grid(
@@ -430,38 +373,29 @@ completed_button.grid(
 )
 
 
-# -------------------- STATISTICS --------------------
-
-statistics_label = ctk.CTkLabel(
+count_label = ctk.CTkLabel(
     root,
-    text="Total: 0     Pending: 0     Completed: 0",
+    text="Total: 0    Pending: 0    Completed: 0",
     font=("Arial", 14, "bold")
 )
 
-statistics_label.pack(
-    pady=15
-)
+count_label.pack(pady=15)
 
 
-# -------------------- TASK LIST --------------------
-
-task_scroll_frame = ctk.CTkScrollableFrame(
+task_frame = ctk.CTkScrollableFrame(
     root,
-    label_text="Your Tasks"
+    label_text="Tasks"
 )
 
-task_scroll_frame.pack(
+task_frame.pack(
     fill="both",
     expand=True,
-    padx=40,
+    padx=30,
     pady=(0, 20)
 )
 
 
-# -------------------- START APPLICATION --------------------
-
 load_tasks()
-
-refresh_tasks()
+show_tasks()
 
 root.mainloop()
